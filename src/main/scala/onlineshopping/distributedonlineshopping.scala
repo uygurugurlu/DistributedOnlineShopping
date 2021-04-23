@@ -6,6 +6,8 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 import onlineshopping.ShortestPaths
 
+import scala.collection.mutable.ListBuffer
+
 object distributedonlineshopping {
   val errorRate:Int = 20
 
@@ -29,7 +31,6 @@ object distributedonlineshopping {
       (2L, ("cli1", 27, 18)),
       (3L, ("cli2", 22, 21)),
       (4L, ("cli3", 21, 32)),
-      (5L, ("cli4", 21, 32)),
     )
     val edgeArray = Array(
       Edge(1L, 2L, 3.0),
@@ -42,7 +43,6 @@ object distributedonlineshopping {
 
       Edge(2L, 3L, 6.0),
       Edge(3L, 2L, 6.0),
-      Edge(5L, 3L, 6.0),
 
 
       Edge(2L, 4L, 6.0),
@@ -71,6 +71,7 @@ object distributedonlineshopping {
     println(getShortestPath(getSourceVertex(1L, graph), getSourceVertex(2L, graph), graph))
     println(isOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph), getSourceVertex(3L, graph), graph))
     getOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
+    getOnTheWayBack(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
     /*
         val sourceVertex=graph.vertices.filter { case (id,(_,_,_)) => id == 1L}.first
         val sourceVertex2=graph.vertices.filter { case (id,(_,_,_)) => id == 2L}.first
@@ -144,10 +145,23 @@ object distributedonlineshopping {
     }
     return false
   }
+  var visited = new ListBuffer[Long]()
+
   def getOnTheWay(vertexId1: VertexId, vertexId2: VertexId, graph: Graph[(String, Int, Int), Double], vertexArray: Array[(Long, (String, Int, Int))]): Unit = {
     for(item <- vertexArray if item._1 != vertexId1 && item._1 != vertexId2) {
       if(isOnTheWay(vertexId1, item._1, vertexId2, graph)) {
+        visited += item._1
         println(item._1 + "is on the way");
+      }
+    }
+  }
+  def getOnTheWayBack(vertexId1: VertexId, vertexId2: VertexId, graph: Graph[(String, Int, Int), Double], vertexArray: Array[(Long, (String, Int, Int))]): Unit = {
+    for(item <- vertexArray if item._1 != vertexId1 && item._1 != vertexId2) {
+      if(isOnTheWay(vertexId2, item._1, vertexId1, graph)) {
+        if(!visited.exists(i => i == item._1)){
+          println(item._1 + "is on the return way");
+
+        }
       }
     }
   }
