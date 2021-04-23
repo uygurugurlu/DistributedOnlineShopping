@@ -11,8 +11,8 @@ object distributedonlineshopping {
 
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setMaster("local[*]").setAppName("DistributedOnlineShopping")
-
     val sc = new SparkContext(conf)
+    sc.setLogLevel("WARN")
     val sqlContext = new SQLContext(sc)
 
     val df = sqlContext.read
