@@ -5,10 +5,11 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 import onlineshopping.ShortestPaths
+
 object distributedonlineshopping {
+  val errorRate:Int = 20
 
   def main(args: Array[String]): Unit = {
-
     val conf = new SparkConf().setMaster("local[*]").setAppName("DistributedOnlineShopping")
 
     val sc = new SparkContext(conf)
@@ -68,8 +69,8 @@ object distributedonlineshopping {
     //graph.edges.foreach(println)
 
     println(getShortestPath(getSourceVertex(1L, graph), getSourceVertex(2L, graph), graph))
-
-
+    println(isOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph), getSourceVertex(3L, graph), graph))
+    getOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
     /*
         val sourceVertex=graph.vertices.filter { case (id,(_,_,_)) => id == 1L}.first
         val sourceVertex2=graph.vertices.filter { case (id,(_,_,_)) => id == 2L}.first
@@ -133,4 +134,22 @@ object distributedonlineshopping {
     g.outerJoinVertices(g2.vertices)((vid, vd, dist) =>
       (vd, dist.getOrElse((false, Double.MaxValue))._2))
   }
+  //Compares if vertexId2 is on the way of the vertexId1 and vertexId3 according to the errorRate
+  def isOnTheWay(vertexId1: VertexId, vertexId2: VertexId, vertexId3: VertexId, graph: Graph[(String, Int, Int), Double]): Boolean = {
+    val total = getShortestPath(vertexId1, vertexId3, graph).get
+    val way1 = getShortestPath(vertexId1, vertexId2, graph).get
+    val way2 = getShortestPath(vertexId2, vertexId3, graph).get
+    if(way1 + way2 - errorRate <= total) {
+      return true
+    }
+    return false
+  }
+  def getOnTheWay(vertexId1: VertexId, vertexId2: VertexId, graph: Graph[(String, Int, Int), Double], vertexArray: Array[(Long, (String, Int, Int))]): Unit = {
+    for(item <- vertexArray if item._1 != vertexId1 && item._1 != vertexId2) {
+      if(isOnTheWay(vertexId1, item._1, vertexId2, graph)) {
+        println(item._1 + "is on the way");
+      }
+    }
+  }
 }
+
