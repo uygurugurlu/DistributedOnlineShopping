@@ -9,8 +9,8 @@ import onlineshopping.ShortestPaths
 import scala.collection.mutable.ListBuffer
 
 object distributedonlineshopping {
-  val errorRate:Int = 20
-
+  val errorRate:Int = 10
+  var visited = new ListBuffer[Long]()
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setMaster("local[*]").setAppName("DistributedOnlineShopping")
     val sc = new SparkContext(conf)
@@ -44,7 +44,6 @@ object distributedonlineshopping {
       Edge(2L, 3L, 6.0),
       Edge(3L, 2L, 6.0),
 
-
       Edge(2L, 4L, 6.0),
       Edge(4L, 2L, 5.0),
 
@@ -61,17 +60,68 @@ object distributedonlineshopping {
   .zipWithIndex // associate a long index to each vertex
   .map(_.swap)*/
 
-    val vertexRDD: RDD[(Long, (String, Int, Int))] = sc.parallelize(vertexArray)
-    val edgeRDD: RDD[Edge[Double]] = sc.parallelize(edgeArray)
+    var vertexRDD: RDD[(Long, (String, Int, Int))] = sc.parallelize(vertexArray)
+    var edgeRDD: RDD[Edge[Double]] = sc.parallelize(edgeArray)
 
-    val graph: Graph[(String, Int, Int), Double] = Graph(vertexRDD, edgeRDD)
+    var graph: Graph[(String, Int, Int), Double] = Graph(vertexRDD, edgeRDD)
+
+    //graph.edges.foreach(println)
+    println("-------------------------")
+    println("---- Graph 3 ----------")
+
+    getOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
+    getOnTheWayBack(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
+
+
+    println("-------------------------")
+    println("---- Graph 1 ----------")
+    visited = new ListBuffer[Long]()
+    val vertexArray2 = Array(
+      (1L, ("dist", 28, 20)),
+      (2L, ("cli1", 27, 18)),
+      (3L, ("cli2", 22, 21))
+    )
+    val edgeArray2 = Array(
+      Edge(1L, 2L, 5.0),
+      Edge(1L, 3L, 8.0),
+      Edge(2L, 3L, 2.0),
+      Edge(2L, 1L, 5.0),
+      Edge(3L, 1L, 8.0),
+      Edge(3L, 2L, 3.0)
+    )
+     vertexRDD = sc.parallelize(vertexArray2)
+     edgeRDD = sc.parallelize(edgeArray2)
+
+      graph= Graph(vertexRDD, edgeRDD)
 
     //graph.edges.foreach(println)
 
-    println(getShortestPath(getSourceVertex(1L, graph), getSourceVertex(2L, graph), graph))
-    println(isOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph), getSourceVertex(3L, graph), graph))
-    getOnTheWay(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
-    getOnTheWayBack(getSourceVertex(1L, graph), getSourceVertex(2L, graph),graph, vertexArray)
+
+    getOnTheWay(getSourceVertex(1L, graph), getSourceVertex(3L, graph),graph, vertexArray2)
+    getOnTheWayBack(getSourceVertex(1L, graph), getSourceVertex(3L, graph),graph, vertexArray2)
+    println("without algorithm, total cost: 26")
+    println("with algorithm, total cost: 15")
+
+    println("-------------------------")
+    println("---- Graph 2 ----------")
+
+    visited = new ListBuffer[Long]()
+    val edgeArray3 = Array(
+      Edge(1L, 2L, 8.0),
+      Edge(1L, 3L, 8.0),
+      Edge(2L, 3L, 5.0),
+      Edge(2L, 1L, 3.0),
+      Edge(3L, 1L, 11.0),
+      Edge(3L, 2L, 5.0)
+    )
+    edgeRDD = sc.parallelize(edgeArray3)
+    graph= Graph(vertexRDD, edgeRDD)
+    getOnTheWay(getSourceVertex(1L, graph), getSourceVertex(3L, graph),graph, vertexArray2)
+    getOnTheWayBack(getSourceVertex(1L, graph), getSourceVertex(3L, graph),graph, vertexArray2)
+    println("without algorithm, total cost: 30")
+    println("with algorithm, total cost: 16")
+
+
     /*
         val sourceVertex=graph.vertices.filter { case (id,(_,_,_)) => id == 1L}.first
         val sourceVertex2=graph.vertices.filter { case (id,(_,_,_)) => id == 2L}.first
@@ -145,7 +195,7 @@ object distributedonlineshopping {
     }
     return false
   }
-  var visited = new ListBuffer[Long]()
+
 
   def getOnTheWay(vertexId1: VertexId, vertexId2: VertexId, graph: Graph[(String, Int, Int), Double], vertexArray: Array[(Long, (String, Int, Int))]): Unit = {
     for(item <- vertexArray if item._1 != vertexId1 && item._1 != vertexId2) {
